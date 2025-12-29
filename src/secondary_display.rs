@@ -33,7 +33,10 @@ pub async fn start_secondary_display_task(
     mut event_receiver: broadcast::Receiver<Event>,
 ) {
     let status_path = config.secondary_display_status_path.clone();
-    
+
+    // Initialize brightness sync state from config
+    state_manager.set_brightness_sync_enabled(config.brightness_sync_enabled);
+
     control_secondary_display(&status_path, state_manager.is_secondary_display_enabled()).await;
 
     // Task to handle events
@@ -69,7 +72,10 @@ pub async fn start_secondary_display_task(
                 let actual_enabled = is_secondary_display_enabled_actual(&status_path).await;
                 let desired_enabled = state_manager.is_secondary_display_enabled();
                 if actual_enabled != desired_enabled {
-                    warn!("Secondary display is not in the desired state, actual: {}, desired: {}", actual_enabled, desired_enabled);
+                    warn!(
+                        "Secondary display is not in the desired state, actual: {}, desired: {}",
+                        actual_enabled, desired_enabled
+                    );
                     control_secondary_display(&status_path, desired_enabled).await;
                 }
             }
@@ -80,12 +86,16 @@ pub async fn start_secondary_display_task(
     {
         let source = config.primary_backlight_path.clone();
         let target = config.secondary_backlight_path.clone();
+        let state_manager = state_manager.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_millis(500));
             loop {
                 interval.tick().await;
-                if let Ok(brightness) = fs::read_to_string(&source).await {
-                    fs::write(&target, brightness.trim()).await.ok();
+                // Only sync brightness if enabled
+                if state_manager.is_brightness_sync_enabled() {
+                    if let Ok(brightness) = fs::read_to_string(&source).await {
+                        fs::write(&target, brightness.trim()).await.ok();
+                    }
                 }
             }
         });

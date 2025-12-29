@@ -33,6 +33,8 @@ struct InnerState {
     is_idle: bool,
     is_usb_attached: bool,
     is_secondary_display_enabled: bool,
+    /// Controls whether brightness syncs between primary and secondary display
+    is_brightness_sync_enabled: bool,
 }
 
 /// Shared state manager that maintains keyboard state across attach/detach cycles
@@ -52,6 +54,7 @@ impl KeyboardStateManager {
                 is_idle: false,
                 is_usb_attached,
                 is_secondary_display_enabled: !is_usb_attached,
+                is_brightness_sync_enabled: true,
             })),
             sender,
         }
@@ -70,8 +73,12 @@ impl KeyboardStateManager {
         let mut state = self.state.write().unwrap();
         state.is_suspended = false;
         drop(state);
-        self.sender.send(Event::MicMuteLed(self.get_mic_mute_led())).ok();
-        self.sender.send(Event::Backlight(self.get_keyboard_backlight())).ok();
+        self.sender
+            .send(Event::MicMuteLed(self.get_mic_mute_led()))
+            .ok();
+        self.sender
+            .send(Event::Backlight(self.get_keyboard_backlight()))
+            .ok();
     }
 
     pub fn idle_start(&self) {
@@ -86,7 +93,9 @@ impl KeyboardStateManager {
         let mut state = self.state.write().unwrap();
         state.is_idle = false;
         drop(state);
-        self.sender.send(Event::Backlight(self.get_keyboard_backlight())).ok();
+        self.sender
+            .send(Event::Backlight(self.get_keyboard_backlight()))
+            .ok();
     }
 
     pub fn set_mic_mute_led(&self, enabled: bool) {
@@ -183,5 +192,20 @@ impl KeyboardStateManager {
     pub fn is_secondary_display_enabled(&self) -> bool {
         let state = self.state.read().unwrap();
         state.is_secondary_display_enabled
+    }
+
+    pub fn set_brightness_sync_enabled(&self, enabled: bool) {
+        let mut state = self.state.write().unwrap();
+        state.is_brightness_sync_enabled = enabled;
+    }
+
+    pub fn toggle_brightness_sync_enabled(&self) {
+        let mut state = self.state.write().unwrap();
+        state.is_brightness_sync_enabled = !state.is_brightness_sync_enabled;
+    }
+
+    pub fn is_brightness_sync_enabled(&self) -> bool {
+        let state = self.state.read().unwrap();
+        state.is_brightness_sync_enabled
     }
 }

@@ -65,6 +65,8 @@ pub struct Config {
     pub pipe_path: String,
     /// Idle timeout in seconds. Set to 0 to disable idle detection.
     pub idle_timeout_seconds: u64,
+    /// Enable brightness sync between primary and secondary display. Can be toggled at runtime via the pipe.
+    pub brightness_sync_enabled: bool,
 }
 
 impl Config {
@@ -92,9 +94,11 @@ impl Default for Config {
             toggle_secondary_display_key: KeyFunction::ToggleSecondaryDisplay(true),
             secondary_display_status_path: "/sys/class/drm/card1-eDP-2/status".to_string(),
             primary_backlight_path: "/sys/class/backlight/intel_backlight/brightness".to_string(),
-            secondary_backlight_path: "/sys/class/backlight/card1-eDP-2-backlight/brightness".to_string(),
+            secondary_backlight_path: "/sys/class/backlight/card1-eDP-2-backlight/brightness"
+                .to_string(),
             pipe_path: "/tmp/zenbook-duo-daemon.pipe".to_string(),
             idle_timeout_seconds: 300, // 5 minutes
+            brightness_sync_enabled: true,
         }
     }
 }
@@ -118,6 +122,7 @@ impl Config {
 #
 #
 # idle_timeout_seconds = 300 # 5 minutes, set to 0 to disable idle detection
+# brightness_sync_enabled = true # Enable brightness sync between primary and secondary display, can be toggled at runtime via the pipe
         ".trim();
         let config_str = format!("{}\n\n\n{}", help, config_str);
 
@@ -133,10 +138,9 @@ impl Config {
         let config_str = fs::read_to_string(config_path)
             .await
             .map_err(|e| format!("Failed to read config file: {}", e))?;
-        toml::from_str(&config_str)
-            .map_err(|e| format!("Failed to parse config file: {}", e))
+        toml::from_str(&config_str).map_err(|e| format!("Failed to parse config file: {}", e))
     }
-    
+
     /// Read config file, creating default if it doesn't exist
     pub async fn read(config_path: &PathBuf) -> Config {
         if !fs::try_exists(config_path).await.unwrap_or(false) {

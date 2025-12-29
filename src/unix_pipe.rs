@@ -105,6 +105,15 @@ pub fn start_receive_commands_task(
                     "secondary_display_off" => {
                         state_manager.set_secondary_display(false);
                     }
+                    "brightness_sync_enable" => {
+                        state_manager.set_brightness_sync_enabled(true);
+                    }
+                    "brightness_sync_disable" => {
+                        state_manager.set_brightness_sync_enabled(false);
+                    }
+                    "brightness_sync_toggle" => {
+                        state_manager.toggle_brightness_sync_enabled();
+                    }
                     _ => {
                         warn!("Unknown pipe command: {}", line);
                     }
