@@ -84,26 +84,30 @@ echo mic_mute_led_toggle > /tmp/zenbook-duo-daemon.pipe
 
 Available commands:
 
-| Command                    | Description                               |
-| -------------------------- | ----------------------------------------- |
-| `mic_mute_led_toggle`      | Toggle microphone mute LED                |
-| `mic_mute_led_on`          | Turn on microphone mute LED               |
-| `mic_mute_led_off`         | Turn off microphone mute LED              |
-| `backlight_toggle`         | Cycle keyboard backlight                  |
-| `backlight_off`            | Turn off keyboard backlight               |
-| `backlight_low`            | Set keyboard backlight to low             |
-| `backlight_medium`         | Set keyboard backlight to medium          |
-| `backlight_high`           | Set keyboard backlight to high            |
-| `secondary_display_toggle` | Toggle secondary display                  |
-| `secondary_display_on`     | Turn on secondary display                 |
-| `secondary_display_off`    | Turn off secondary display                |
-| `suspend_start`            | Signal suspend start (disables backlight) |
-| `suspend_end`              | Signal suspend end (restores backlight)   |
+| Command                    | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| `mic_mute_led_toggle`      | Toggle microphone mute LED                            |
+| `mic_mute_led_on`          | Turn on microphone mute LED                           |
+| `mic_mute_led_off`         | Turn off microphone mute LED                          |
+| `backlight_toggle`         | Cycle keyboard backlight                              |
+| `backlight_off`            | Turn off keyboard backlight                           |
+| `backlight_low`            | Set keyboard backlight to low                         |
+| `backlight_medium`         | Set keyboard backlight to medium                      |
+| `backlight_high`           | Set keyboard backlight to high                        |
+| `secondary_display_toggle` | Toggle secondary display                              |
+| `secondary_display_on`     | Turn on secondary display                             |
+| `secondary_display_off`    | Turn off secondary display                            |
+| `brightness_sync_enable`   | Enable brightness sync between primary and secondary  |
+| `brightness_sync_disable`  | Disable brightness sync between primary and secondary |
+| `brightness_sync_toggle`   | Toggle brightness sync between primary and secondary  |
+| `suspend_start`            | Signal suspend start (disables backlight)             |
+| `suspend_end`              | Signal suspend end (restores backlight)               |
 
 Notes:
 
 1. The `suspend_start` and `suspend_end` commands are sent automatically by the systemd services `zenbook-duo-daemon-pre-sleep` and `zenbook-duo-daemon-post-sleep` to disable keyboard backlight during suspend.
 2. The secondary display commands are no-op when the keyboard is attached.
+3. The brightness sync commands control whether the secondary display brightness automatically follows the primary display brightness. The initial state can be configured via `brightness_sync_enabled` in the config file.
 
 ## Development
 
