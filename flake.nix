@@ -42,8 +42,8 @@
 
             # The daemon needs to run as root and access hardware devices
             # Installation and permissions are handled by the NixOS module
+            # Service files are included for users who want to install manually
             postInstall = ''
-              # Services will be installed by the NixOS module
               mkdir -p $out/lib/systemd/system
               cp ${./zenbook-duo-daemon.service} $out/lib/systemd/system/
               cp ${./zenbook-duo-daemon-pre-sleep.service} $out/lib/systemd/system/
@@ -100,6 +100,7 @@
             # Tests require hardware access and root permissions, not available in sandbox
             doCheck = false;
 
+            # Service files included for manual installation outside NixOS module
             postInstall = ''
               mkdir -p $out/lib/systemd/system
               cp ${self}/zenbook-duo-daemon.service $out/lib/systemd/system/

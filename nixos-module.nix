@@ -8,9 +8,10 @@ let
   # Auto-detect product ID based on board name or use provided value
   effectiveProductId =
     if cfg.usbProductId == "auto" then
-      # Default to 2024 model when auto-detecting
-      # The daemon will also auto-detect at runtime, so this is just a sensible default
-      "1b2c"  # Zenbook Duo 2024 (most common model)
+      # Default to 2024 model (most common/older model, more likely to be encountered)
+      # The daemon auto-detects at runtime by reading /sys/class/dmi/id/board_name
+      # so this is just a config file placeholder that works for both models
+      "1b2c"  # Zenbook Duo 2024 (UX8406MA)
     else
       cfg.usbProductId;
 
