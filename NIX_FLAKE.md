@@ -50,7 +50,9 @@ nix develop github:PegasisForever/zenbook-duo-daemon
 
 ## Configuration
 
-The NixOS module provides extensive configuration options. Here's a complete example:
+The NixOS module provides extensive configuration options. A complete example configuration file is available at [`example-nixos-config.nix`](example-nixos-config.nix).
+
+Here's a complete example:
 
 ```nix
 {
