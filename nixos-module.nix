@@ -241,6 +241,9 @@ in
       before = [ "sleep.target" ];
       wantedBy = [ "sleep.target" ];
 
+      # Restart service when config changes (e.g., pipe path)
+      restartIfChanged = true;
+
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.coreutils}/bin/timeout 1 ${pkgs.bash}/bin/bash -c 'echo suspend_start > ${cfg.pipePath} && sleep 0.5 || true'";
@@ -252,6 +255,9 @@ in
       description = "Notify Zenbook Duo daemon after sleep";
       after = [ "suspend.target" "hibernate.target" "hybrid-sleep.target" "suspend-then-hibernate.target" ];
       wantedBy = [ "suspend.target" "hibernate.target" "hybrid-sleep.target" "suspend-then-hibernate.target" ];
+
+      # Restart service when config changes (e.g., pipe path)
+      restartIfChanged = true;
 
       serviceConfig = {
         Type = "oneshot";
