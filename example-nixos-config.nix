@@ -2,19 +2,26 @@
 # 
 # This file shows various configuration examples.
 # Copy the relevant sections to your configuration.nix or a separate module.
+# 
+# Note: This assumes you're importing the flake in your system configuration.
+# Add to your flake.nix inputs:
+#   inputs.zenbook-duo-daemon.url = "github:PegasisForever/zenbook-duo-daemon";
 
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   # Basic setup with defaults
-  services.zenbook-duo-daemon.enable = true;
+  services.zenbook-duo-daemon = {
+    enable = true;
+    package = inputs.zenbook-duo-daemon.packages.${pkgs.system}.default;
+  };
 
   # Or with custom configuration:
   services.zenbook-duo-daemon = {
     enable = true;
     
-    # Optional: Specify a different package (e.g., from a local build)
-    # package = pkgs.zenbook-duo-daemon;
+    # Required: Specify the package from the flake input
+    package = inputs.zenbook-duo-daemon.packages.${pkgs.system}.default;
     
     # USB device configuration
     # "auto" will auto-detect based on your laptop model

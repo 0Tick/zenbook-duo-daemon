@@ -24,7 +24,10 @@ Add the flake to your `flake.nix` inputs:
       modules = [
         zenbook-duo-daemon.nixosModules.default
         {
-          services.zenbook-duo-daemon.enable = true;
+          services.zenbook-duo-daemon = {
+            enable = true;
+            package = zenbook-duo-daemon.packages.x86_64-linux.default;
+          };
         }
       ];
     };
@@ -58,6 +61,9 @@ Here's a complete example:
 {
   services.zenbook-duo-daemon = {
     enable = true;
+    
+    # Required: specify the package from the flake
+    package = inputs.zenbook-duo-daemon.packages.x86_64-linux.default;
     
     # USB device identification
     usbVendorId = "0b05";  # ASUS vendor ID

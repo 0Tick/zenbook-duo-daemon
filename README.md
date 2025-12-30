@@ -56,9 +56,10 @@ Quick setup:
 {
   inputs.zenbook-duo-daemon.url = "github:PegasisForever/zenbook-duo-daemon";
   
-  # In your configuration
+  # In your NixOS configuration module
   services.zenbook-duo-daemon = {
     enable = true;
+    package = inputs.zenbook-duo-daemon.packages.x86_64-linux.default;
     # All keybinds and settings are configurable via Nix options
   };
 }
