@@ -216,6 +216,9 @@ in
       after = [ "sysinit.target" ];
       wantedBy = [ "multi-user.target" ];
 
+      # Restart service when config changes
+      restartIfChanged = true;
+
       serviceConfig = {
         Type = "simple";
         User = "root";
