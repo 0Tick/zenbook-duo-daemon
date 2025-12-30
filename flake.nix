@@ -7,12 +7,6 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    let
-      # Overlay to add the package to nixpkgs
-      overlay = final: prev: {
-        zenbook-duo-daemon = self.packages.${final.system}.default;
-      };
-    in
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -80,7 +74,39 @@
       # NixOS module - available on all systems
       nixosModules.default = import ./nixos-module.nix;
       
-      # Export the overlay
-      overlays.default = overlay;
+      # Overlay to add the package to nixpkgs
+      overlays.default = final: prev: {
+        zenbook-duo-daemon = final.callPackage (
+          { rustPlatform, pkg-config, libevdev, dbus, lib }:
+          rustPlatform.buildRustPackage rec {
+            pname = "zenbook-duo-daemon";
+            version = "1.0.1";
+
+            src = self;
+
+            cargoLock = {
+              lockFile = self + "/Cargo.lock";
+            };
+
+            nativeBuildInputs = [ pkg-config ];
+            buildInputs = [ libevdev dbus ];
+
+            postInstall = ''
+              mkdir -p $out/lib/systemd/system
+              cp ${self}/zenbook-duo-daemon.service $out/lib/systemd/system/
+              cp ${self}/zenbook-duo-daemon-pre-sleep.service $out/lib/systemd/system/
+              cp ${self}/zenbook-duo-daemon-post-sleep.service $out/lib/systemd/system/
+            '';
+
+            meta = with lib; {
+              description = "Daemon for ASUS Zenbook Duo laptops to handle keyboard and secondary display";
+              homepage = "https://github.com/PegasisForever/zenbook-duo-daemon";
+              license = licenses.mit;
+              maintainers = [ ];
+              platforms = platforms.linux;
+            };
+          }
+        ) { };
+      };
     };
 }

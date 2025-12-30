@@ -5,6 +5,23 @@ with lib;
 let
   cfg = config.services.zenbook-duo-daemon;
 
+  # Auto-detect product ID based on board name or use provided value
+  effectiveProductId =
+    if cfg.usbProductId == "auto" then
+      # Try to read board name at evaluation time
+      # This will use the build-time board name, which is what we want for NixOS
+      let
+        boardNamePath = "/sys/class/dmi/id/board_name";
+        boardName = if builtins.pathExists boardNamePath
+                    then lib.removeSuffix "\n" (builtins.readFile boardNamePath)
+                    else "";
+      in
+        if boardName == "UX8406CA" then "1bf2"  # Zenbook Duo 2025
+        else if boardName == "UX8406MA" then "1b2c"  # Zenbook Duo 2024
+        else "1b2c"  # Default to 2024 model
+    else
+      cfg.usbProductId;
+
   # Helper function to convert key function configuration to TOML format
   keyFunctionToToml = keyFunc:
     if keyFunc.type == "KeyBind" then
@@ -23,7 +40,7 @@ let
   # Generate config file content
   configFile = pkgs.writeText "zenbook-duo-daemon-config.toml" ''
     usb_vendor_id = "${cfg.usbVendorId}"
-    usb_product_id = "${cfg.usbProductId}"
+    usb_product_id = "${effectiveProductId}"
     secondary_display_status_path = "${cfg.secondaryDisplayStatusPath}"
     primary_backlight_path = "${cfg.primaryBacklightPath}"
     secondary_backlight_path = "${cfg.secondaryBacklightPath}"
@@ -188,13 +205,6 @@ in
   config = mkIf cfg.enable {
     # Install the package
     environment.systemPackages = [ cfg.package ];
-
-    # Determine the actual product ID
-    # When set to "auto", the daemon will detect it at runtime
-    # But we need to provide a valid hex value for the config file
-    services.zenbook-duo-daemon.usbProductId = mkIf (cfg.usbProductId == "auto") (
-      mkDefault "1b2c"  # Default to 2024 model, daemon will auto-detect anyway
-    );
 
     # Create the config directory and file
     environment.etc."zenbook-duo-daemon/config.toml".source = configFile;
