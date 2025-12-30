@@ -35,6 +35,8 @@ Build the daemon binary:
 nix build
 ```
 
+Note: Tests are disabled during the Nix build because they require hardware access and root permissions that aren't available in the Nix build sandbox. The daemon will be fully tested when running on actual hardware.
+
 This should create a `result` symlink containing:
 - `bin/zenbook-duo-daemon` - The daemon binary
 - `lib/systemd/system/zenbook-duo-daemon*.service` - Service files

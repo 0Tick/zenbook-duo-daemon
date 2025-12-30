@@ -34,6 +34,9 @@
               dbus
             ];
 
+            # Tests require hardware access and root permissions, not available in sandbox
+            doCheck = false;
+
             # The daemon needs to run as root and access hardware devices
             # Installation and permissions are handled by the NixOS module
             postInstall = ''
@@ -90,6 +93,9 @@
 
             nativeBuildInputs = [ pkg-config ];
             buildInputs = [ libevdev dbus ];
+
+            # Tests require hardware access and root permissions, not available in sandbox
+            doCheck = false;
 
             postInstall = ''
               mkdir -p $out/lib/systemd/system

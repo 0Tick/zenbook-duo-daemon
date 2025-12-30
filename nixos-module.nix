@@ -8,17 +8,9 @@ let
   # Auto-detect product ID based on board name or use provided value
   effectiveProductId =
     if cfg.usbProductId == "auto" then
-      # Try to read board name at evaluation time
-      # This will use the build-time board name, which is what we want for NixOS
-      let
-        boardNamePath = "/sys/class/dmi/id/board_name";
-        boardName = if builtins.pathExists boardNamePath
-                    then lib.removeSuffix "\n" (builtins.readFile boardNamePath)
-                    else "";
-      in
-        if boardName == "UX8406CA" then "1bf2"  # Zenbook Duo 2025
-        else if boardName == "UX8406MA" then "1b2c"  # Zenbook Duo 2024
-        else "1b2c"  # Default to 2024 model
+      # Default to 2024 model when auto-detecting
+      # The daemon will also auto-detect at runtime, so this is just a sensible default
+      "1b2c"  # Zenbook Duo 2024 (most common model)
     else
       cfg.usbProductId;
 
@@ -100,9 +92,13 @@ in
 
     package = mkOption {
       type = types.package;
-      default = pkgs.zenbook-duo-daemon or (import ./. { inherit pkgs; }).packages.${pkgs.system}.default;
-      defaultText = literalExpression "pkgs.zenbook-duo-daemon";
-      description = "The zenbook-duo-daemon package to use";
+      description = ''
+        The zenbook-duo-daemon package to use.
+        When using the module from the flake, pass the package explicitly:
+          services.zenbook-duo-daemon.package = inputs.zenbook-duo-daemon.packages.x86_64-linux.default;
+        Or use the overlay to make it available in pkgs.
+      '';
+      example = literalExpression "pkgs.zenbook-duo-daemon";
     };
 
     usbVendorId = mkOption {
@@ -116,8 +112,8 @@ in
       default = "auto";
       description = ''
         USB product ID of the keyboard (hex string).
-        Set to "auto" to auto-detect based on board name.
-        Use "1bf2" for Zenbook Duo 2025 (UX8406CA) or "1b2c" for Zenbook Duo 2024 (UX8406MA).
+        Set to "auto" to use a sensible default (the daemon will auto-detect the correct ID at runtime).
+        Or specify manually: "1bf2" for Zenbook Duo 2025 (UX8406CA) or "1b2c" for Zenbook Duo 2024 (UX8406MA).
       '';
     };
 
