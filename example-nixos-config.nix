@@ -47,7 +47,7 @@
       # This example would make the MyASUS key take a screenshot
       myasus = {
         type = "Command";
-        command = "scrot -s /home/user/screenshots/screenshot-$(date +%Y%m%d-%H%M%S).png";
+        command = "scrot -s ~/screenshots/screenshot-$(date +%Y%m%d-%H%M%S).png";
       };
       
       # Example 3: Remap a key to different keybinds
@@ -89,6 +89,6 @@
     # secondaryDisplayStatusPath = "/sys/class/drm/card1-eDP-2/status";
     # primaryBacklightPath = "/sys/class/backlight/intel_backlight/brightness";
     # secondaryBacklightPath = "/sys/class/backlight/card1-eDP-2-backlight/brightness";
-    # pipePath = "/tmp/zenbook-duo-daemon.pipe";
+    # pipePath = "/run/zenbook-duo-daemon.pipe";
   };
 }

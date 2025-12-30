@@ -131,8 +131,8 @@ Rebuild, press the MyASUS key, and check `/tmp/zenbook-test.log`.
 Send commands to the daemon:
 
 ```bash
-echo "backlight_toggle" > /tmp/zenbook-duo-daemon.pipe
-echo "secondary_display_toggle" > /tmp/zenbook-duo-daemon.pipe
+echo "backlight_toggle" > /run/zenbook-duo-daemon.pipe
+echo "secondary_display_toggle" > /run/zenbook-duo-daemon.pipe
 ```
 
 ### 9. Check Logs
@@ -205,7 +205,7 @@ usb_product_id = "1b2c"
 secondary_display_status_path = "/sys/class/drm/card1-eDP-2/status"
 primary_backlight_path = "/sys/class/backlight/intel_backlight/brightness"
 secondary_backlight_path = "/sys/class/backlight/card1-eDP-2-backlight/brightness"
-pipe_path = "/tmp/zenbook-duo-daemon.pipe"
+pipe_path = "/run/zenbook-duo-daemon.pipe"
 idle_timeout_seconds = 300
 
 [keyboard_backlight_key]

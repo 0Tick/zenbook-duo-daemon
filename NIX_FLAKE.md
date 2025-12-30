@@ -74,7 +74,7 @@ Here's a complete example:
     secondaryDisplayStatusPath = "/sys/class/drm/card1-eDP-2/status";
     primaryBacklightPath = "/sys/class/backlight/intel_backlight/brightness";
     secondaryBacklightPath = "/sys/class/backlight/card1-eDP-2-backlight/brightness";
-    pipePath = "/tmp/zenbook-duo-daemon.pipe";
+    pipePath = "/run/zenbook-duo-daemon.pipe";
     
     # Idle timeout (in seconds, 0 to disable)
     idleTimeoutSeconds = 300;
@@ -178,10 +178,10 @@ Does nothing (disables the key):
 
 ## Control Pipe
 
-The daemon creates a control pipe (default: `/tmp/zenbook-duo-daemon.pipe`) for receiving commands. You can send commands to control the daemon:
+The daemon creates a control pipe (default: `/run/zenbook-duo-daemon.pipe`) for receiving commands. You can send commands to control the daemon:
 
 ```bash
-echo mic_mute_led_toggle > /tmp/zenbook-duo-daemon.pipe
+echo mic_mute_led_toggle > /run/zenbook-duo-daemon.pipe
 ```
 
 Available commands:

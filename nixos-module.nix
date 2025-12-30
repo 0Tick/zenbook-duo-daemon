@@ -18,9 +18,15 @@ let
   # Helper function to convert key function configuration to TOML format
   keyFunctionToToml = keyFunc:
     if keyFunc.type == "KeyBind" then
-      "KeyBind = [${concatMapStringsSep ", " (k: ''"${k}"'') keyFunc.keys}]"
+      if keyFunc.keys == [] then
+        throw "KeyBind type requires at least one key in the 'keys' list"
+      else
+        "KeyBind = [${concatMapStringsSep ", " (k: ''"${k}"'') keyFunc.keys}]"
     else if keyFunc.type == "Command" then
-      ''Command = "${keyFunc.command}"''
+      if keyFunc.command == "" then
+        throw "Command type requires a non-empty 'command' string"
+      else
+        ''Command = "${keyFunc.command}"''
     else if keyFunc.type == "KeyboardBacklight" then
       "KeyboardBacklight = true"
     else if keyFunc.type == "ToggleSecondaryDisplay" then
@@ -65,23 +71,21 @@ let
     ${keyFunctionToToml cfg.keyMappings.toggleSecondaryDisplay}
   '';
 
-  keyFunctionOption = mkOption {
-    type = types.submodule {
-      options = {
-        type = mkOption {
-          type = types.enum [ "KeyBind" "Command" "KeyboardBacklight" "ToggleSecondaryDisplay" "NoOp" ];
-          description = "Type of key function";
-        };
-        keys = mkOption {
-          type = types.listOf types.str;
-          default = [];
-          description = "List of keys for KeyBind type (e.g., [\"KEY_LEFTCTRL\" \"KEY_F10\"])";
-        };
-        command = mkOption {
-          type = types.str;
-          default = "";
-          description = "Command to execute for Command type";
-        };
+  keyFunctionOption = types.submodule {
+    options = {
+      type = mkOption {
+        type = types.enum [ "KeyBind" "Command" "KeyboardBacklight" "ToggleSecondaryDisplay" "NoOp" ];
+        description = "Type of key function";
+      };
+      keys = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "List of keys for KeyBind type (e.g., [\"KEY_LEFTCTRL\" \"KEY_F10\"])";
+      };
+      command = mkOption {
+        type = types.str;
+        default = "";
+        description = "Command to execute for Command type";
       };
     };
   };
@@ -138,7 +142,7 @@ in
 
     pipePath = mkOption {
       type = types.str;
-      default = "/tmp/zenbook-duo-daemon.pipe";
+      default = "/run/zenbook-duo-daemon.pipe";
       description = "Path to the control pipe for sending commands to the daemon";
     };
 
@@ -236,7 +240,7 @@ in
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.coreutils}/bin/timeout 1 ${pkgs.bash}/bin/bash -c 'echo suspend_start > ${cfg.pipePath} && sleep 0.5'";
+        ExecStart = "${pkgs.coreutils}/bin/timeout 1 ${pkgs.bash}/bin/bash -c 'echo suspend_start > ${cfg.pipePath} && sleep 0.5 || true'";
       };
     };
 
@@ -248,7 +252,7 @@ in
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.coreutils}/bin/timeout 1 ${pkgs.bash}/bin/bash -c 'echo suspend_end > ${cfg.pipePath}'";
+        ExecStart = "${pkgs.coreutils}/bin/timeout 1 ${pkgs.bash}/bin/bash -c 'echo suspend_end > ${cfg.pipePath} || true'";
       };
     };
   };

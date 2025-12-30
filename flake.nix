@@ -9,6 +9,40 @@
   outputs = { self, nixpkgs, flake-utils }:
     let
       version = "1.0.1";
+      
+      # Shared package builder function
+      mkPackage = { rustPlatform, pkg-config, libevdev, dbus, lib, src }:
+        rustPlatform.buildRustPackage rec {
+          pname = "zenbook-duo-daemon";
+          inherit version;
+          inherit src;
+
+          cargoLock = {
+            lockFile = src + "/Cargo.lock";
+          };
+
+          nativeBuildInputs = [ pkg-config ];
+          buildInputs = [ libevdev dbus ];
+
+          # Tests require hardware access and root permissions, not available in sandbox
+          doCheck = false;
+
+          # Service files included for manual installation outside NixOS module
+          postInstall = ''
+            mkdir -p $out/lib/systemd/system
+            cp ${src}/zenbook-duo-daemon.service $out/lib/systemd/system/
+            cp ${src}/zenbook-duo-daemon-pre-sleep.service $out/lib/systemd/system/
+            cp ${src}/zenbook-duo-daemon-post-sleep.service $out/lib/systemd/system/
+          '';
+
+          meta = with lib; {
+            description = "Daemon for ASUS Zenbook Duo laptops to handle keyboard and secondary display";
+            homepage = "https://github.com/PegasisForever/zenbook-duo-daemon";
+            license = licenses.mit;
+            maintainers = [ ];
+            platforms = platforms.linux;
+          };
+        };
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -18,46 +52,7 @@
       in
       {
         packages = {
-          default = pkgs.rustPlatform.buildRustPackage rec {
-            pname = "zenbook-duo-daemon";
-            inherit version;
-
-            src = ./.;
-
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-            };
-
-            nativeBuildInputs = with pkgs; [
-              pkg-config
-            ];
-
-            buildInputs = with pkgs; [
-              libevdev
-              dbus
-            ];
-
-            # Tests require hardware access and root permissions, not available in sandbox
-            doCheck = false;
-
-            # The daemon needs to run as root and access hardware devices
-            # Installation and permissions are handled by the NixOS module
-            # Service files are included for users who want to install manually
-            postInstall = ''
-              mkdir -p $out/lib/systemd/system
-              cp ${./zenbook-duo-daemon.service} $out/lib/systemd/system/
-              cp ${./zenbook-duo-daemon-pre-sleep.service} $out/lib/systemd/system/
-              cp ${./zenbook-duo-daemon-post-sleep.service} $out/lib/systemd/system/
-            '';
-
-            meta = with pkgs.lib; {
-              description = "Daemon for ASUS Zenbook Duo laptops to handle keyboard and secondary display";
-              homepage = "https://github.com/PegasisForever/zenbook-duo-daemon";
-              license = licenses.mit;
-              maintainers = [ ];
-              platforms = platforms.linux;
-            };
-          };
+          default = pkgs.callPackage mkPackage { src = ./.; };
         };
 
         # Development shell with all dependencies
@@ -82,41 +77,7 @@
       
       # Overlay to add the package to nixpkgs
       overlays.default = final: prev: {
-        zenbook-duo-daemon = final.callPackage (
-          { rustPlatform, pkg-config, libevdev, dbus, lib }:
-          rustPlatform.buildRustPackage rec {
-            pname = "zenbook-duo-daemon";
-            inherit version;
-
-            src = self;
-
-            cargoLock = {
-              lockFile = self + "/Cargo.lock";
-            };
-
-            nativeBuildInputs = [ pkg-config ];
-            buildInputs = [ libevdev dbus ];
-
-            # Tests require hardware access and root permissions, not available in sandbox
-            doCheck = false;
-
-            # Service files included for manual installation outside NixOS module
-            postInstall = ''
-              mkdir -p $out/lib/systemd/system
-              cp ${self}/zenbook-duo-daemon.service $out/lib/systemd/system/
-              cp ${self}/zenbook-duo-daemon-pre-sleep.service $out/lib/systemd/system/
-              cp ${self}/zenbook-duo-daemon-post-sleep.service $out/lib/systemd/system/
-            '';
-
-            meta = with lib; {
-              description = "Daemon for ASUS Zenbook Duo laptops to handle keyboard and secondary display";
-              homepage = "https://github.com/PegasisForever/zenbook-duo-daemon";
-              license = licenses.mit;
-              maintainers = [ ];
-              platforms = platforms.linux;
-            };
-          }
-        ) { };
+        zenbook-duo-daemon = final.callPackage mkPackage { src = self; };
       };
     };
 }
