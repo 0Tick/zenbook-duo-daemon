@@ -95,7 +95,7 @@ in
       description = ''
         The zenbook-duo-daemon package to use.
         When using the module from the flake, pass the package explicitly:
-          services.zenbook-duo-daemon.package = inputs.zenbook-duo-daemon.packages.x86_64-linux.default;
+          services.zenbook-duo-daemon.package = inputs.zenbook-duo-daemon.packages.$${pkgs.system}.default;
         Or use the overlay to make it available in pkgs.
       '';
       example = literalExpression "pkgs.zenbook-duo-daemon";

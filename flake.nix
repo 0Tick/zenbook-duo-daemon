@@ -7,6 +7,9 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
+    let
+      version = "1.0.1";
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -17,7 +20,7 @@
         packages = {
           default = pkgs.rustPlatform.buildRustPackage rec {
             pname = "zenbook-duo-daemon";
-            version = "1.0.1";
+            inherit version;
 
             src = ./.;
 
@@ -83,7 +86,7 @@
           { rustPlatform, pkg-config, libevdev, dbus, lib }:
           rustPlatform.buildRustPackage rec {
             pname = "zenbook-duo-daemon";
-            version = "1.0.1";
+            inherit version;
 
             src = self;
 

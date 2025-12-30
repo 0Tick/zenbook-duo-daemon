@@ -10,13 +10,18 @@
 { config, pkgs, inputs, ... }:
 
 {
-  # Basic setup with defaults
-  services.zenbook-duo-daemon = {
-    enable = true;
-    package = inputs.zenbook-duo-daemon.packages.${pkgs.system}.default;
-  };
+  # === OPTION 1: Basic setup with defaults ===
+  # Uncomment this block for minimal configuration:
+  
+  # services.zenbook-duo-daemon = {
+  #   enable = true;
+  #   package = inputs.zenbook-duo-daemon.packages.${pkgs.system}.default;
+  # };
 
-  # Or with custom configuration:
+  # === OPTION 2: Full custom configuration ===
+  # This example shows all available configuration options.
+  # Remove the options you don't need to customize.
+  
   services.zenbook-duo-daemon = {
     enable = true;
     
