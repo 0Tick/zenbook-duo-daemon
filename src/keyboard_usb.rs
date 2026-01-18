@@ -11,7 +11,8 @@ use tokio::sync::{Mutex, broadcast};
 
 use crate::{
     KeyboardBacklightState, config::Config, events::Event, idle_detection::ActivityNotifier,
-    parse_hex_string, state::KeyboardStateManager, virtual_keyboard::VirtualKeyboard,
+    parse_hex_string, state::KeyboardStateManager, unix_pipe::UnixSocketNotifier,
+    virtual_keyboard::VirtualKeyboard,
 };
 
 pub async fn find_wired_keyboard(config: &Config) -> Option<DeviceInfo> {
@@ -29,6 +30,7 @@ pub fn start_usb_keyboard_monitor_task(
     virtual_keyboard: Arc<Mutex<VirtualKeyboard>>,
     state_manager: KeyboardStateManager,
     activity_notifier: ActivityNotifier,
+    socket_notifier: UnixSocketNotifier,
 ) {
     let config = config.clone();
     tokio::spawn(async move {
@@ -48,6 +50,7 @@ pub fn start_usb_keyboard_monitor_task(
                             virtual_keyboard.clone(),
                             state_manager.clone(),
                             activity_notifier.clone(),
+                            socket_notifier.clone(),
                         )
                         .await,
                     );
@@ -73,6 +76,7 @@ pub async fn start_usb_keyboard_task(
     virtual_keyboard: Arc<Mutex<VirtualKeyboard>>,
     state_manager: KeyboardStateManager,
     activity_notifier: ActivityNotifier,
+    socket_notifier: UnixSocketNotifier,
 ) -> (DeviceId, broadcast::Sender<()>) {
     let (shutdown_tx, mut shutdown_rx1) = broadcast::channel::<()>(1);
     let device_id = keyboard.id();
@@ -150,6 +154,7 @@ pub async fn start_usb_keyboard_task(
     });
 
     let config = config.clone();
+    let socket_notifier = socket_notifier.clone();
     tokio::spawn(async move {
         loop {
             while endpoint_5.pending() < 3 {
@@ -169,7 +174,13 @@ pub async fn start_usb_keyboard_task(
                             let data = &completion.buffer[..completion.actual_len];
                             // endpoint 5 is not a HID device so the idle detection module needs to be notified manually
                             activity_notifier.notify();
-                            parse_keyboard_data(data, &config, &virtual_keyboard, &state_manager)
+                            parse_keyboard_data(
+                                data,
+                                &config,
+                                &virtual_keyboard,
+                                &state_manager,
+                                &socket_notifier,
+                            )
                                 .await;
                         }
                         Err(e) => {
@@ -191,6 +202,7 @@ async fn parse_keyboard_data(
     config: &Config,
     virtual_keyboard: &Arc<Mutex<VirtualKeyboard>>,
     state_manager: &KeyboardStateManager,
+    socket_notifier: &UnixSocketNotifier,
 ) {
     // Only one function key can be pressed at a time, this is a hardware limitation
     match data {
@@ -200,6 +212,7 @@ async fn parse_keyboard_data(
         }
         [90, 199, 0, 0, 0, 0] => {
             debug!("Backlight key pressed");
+            socket_notifier.notify_key("keyboard_backlight_key");
             config
                 .keyboard_backlight_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -207,6 +220,7 @@ async fn parse_keyboard_data(
         }
         [90, 16, 0, 0, 0, 0] => {
             debug!("Brightness down key pressed");
+            socket_notifier.notify_key("brightness_down_key");
             config
                 .brightness_down_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -214,6 +228,7 @@ async fn parse_keyboard_data(
         }
         [90, 32, 0, 0, 0, 0] => {
             debug!("Brightness up key pressed");
+            socket_notifier.notify_key("brightness_up_key");
             config
                 .brightness_up_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -221,6 +236,7 @@ async fn parse_keyboard_data(
         }
         [90, 156, 0, 0, 0, 0] => {
             debug!("Swap up down display key pressed");
+            socket_notifier.notify_key("swap_up_down_display_key");
             config
                 .swap_up_down_display_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -228,6 +244,7 @@ async fn parse_keyboard_data(
         }
         [90, 124, 0, 0, 0, 0] => {
             debug!("Microphone mute key pressed");
+            socket_notifier.notify_key("microphone_mute_key");
             config
                 .microphone_mute_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -235,6 +252,7 @@ async fn parse_keyboard_data(
         }
         [90, 126, 0, 0, 0, 0] => {
             debug!("Emoji picker key pressed");
+            socket_notifier.notify_key("emoji_picker_key");
             config
                 .emoji_picker_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -242,6 +260,7 @@ async fn parse_keyboard_data(
         }
         [90, 134, 0, 0, 0, 0] => {
             debug!("MyASUS key pressed");
+            socket_notifier.notify_key("myasus_key");
             config
                 .myasus_key
                 .execute(&virtual_keyboard, &state_manager)
@@ -249,6 +268,7 @@ async fn parse_keyboard_data(
         }
         [90, 106, 0, 0, 0, 0] => {
             debug!("Toggle secondary display key pressed");
+            socket_notifier.notify_key("toggle_secondary_display_key");
             config
                 .toggle_secondary_display_key
                 .execute(&virtual_keyboard, &state_manager)

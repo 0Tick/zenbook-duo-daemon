@@ -9,6 +9,8 @@ PRE_SLEEP_SERVICE_NAME="zenbook-duo-daemon-pre-sleep"
 PRE_SLEEP_SERVICE_FILE="/etc/systemd/system/${PRE_SLEEP_SERVICE_NAME}.service"
 POST_SLEEP_SERVICE_NAME="zenbook-duo-daemon-post-sleep"
 POST_SLEEP_SERVICE_FILE="/etc/systemd/system/${POST_SLEEP_SERVICE_NAME}.service"
+USER_SERVICE_NAME="zenbook-duo-daemon-user"
+USER_SERVICE_FILE="/etc/systemd/user/${USER_SERVICE_NAME}.service"
 INSTALL_DIR="/opt/zenbook-duo-daemon"
 BINARY_PATH="${INSTALL_DIR}/zenbook-duo-daemon"
 GITHUB_REPO="https://github.com/PegasisForever/zenbook-duo-daemon/releases/latest/download"
@@ -72,6 +74,11 @@ uninstall() {
     if [ -f "${POST_SLEEP_SERVICE_FILE}" ]; then
         echo "Removing post-sleep service file..."
         rm -f "${POST_SLEEP_SERVICE_FILE}"
+    fi
+
+    if [ -f "${USER_SERVICE_FILE}" ]; then
+        echo "Removing user service file..."
+        rm -f "${USER_SERVICE_FILE}"
     fi
     
     systemctl daemon-reload
@@ -149,6 +156,20 @@ install() {
         rm -f "${BINARY_PATH}" "${SERVICE_FILE}" "${PRE_SLEEP_SERVICE_FILE}" "${POST_SLEEP_SERVICE_FILE}"
         exit 1
     fi
+
+    # Download user service file
+    echo "Downloading user service file from ${GITHUB_REPO}/zenbook-duo-daemon-user.service..."
+    mkdir -p "$(dirname "${USER_SERVICE_FILE}")"
+    if ! curl -fSL -o "${USER_SERVICE_FILE}" "${GITHUB_REPO}/zenbook-duo-daemon-user.service"; then
+        echo "Error: Failed to download user service file" >&2
+        rm -f "${BINARY_PATH}" "${SERVICE_FILE}" "${PRE_SLEEP_SERVICE_FILE}" "${POST_SLEEP_SERVICE_FILE}"
+        exit 1
+    fi
+    if [ ! -s "${USER_SERVICE_FILE}" ]; then
+        echo "Error: Downloaded user service file is empty" >&2
+        rm -f "${BINARY_PATH}" "${SERVICE_FILE}" "${PRE_SLEEP_SERVICE_FILE}" "${POST_SLEEP_SERVICE_FILE}" "${USER_SERVICE_FILE}"
+        exit 1
+    fi
     
     # Run migrate-config command
     echo "Running config migration..."
@@ -187,6 +208,7 @@ local_install() {
     local service_file_path="${SCRIPT_DIR}/zenbook-duo-daemon.service"
     local pre_sleep_service_file_path="${SCRIPT_DIR}/zenbook-duo-daemon-pre-sleep.service"
     local post_sleep_service_file_path="${SCRIPT_DIR}/zenbook-duo-daemon-post-sleep.service"
+    local user_service_file_path="${SCRIPT_DIR}/zenbook-duo-daemon-user.service"
     
     if [ ! -f "${binary_path}" ]; then
         echo "Error: Binary file not found: ${binary_path}" >&2
@@ -205,6 +227,11 @@ local_install() {
     
     if [ ! -f "${post_sleep_service_file_path}" ]; then
         echo "Error: Post-sleep service file not found: ${post_sleep_service_file_path}" >&2
+        exit 1
+    fi
+
+    if [ ! -f "${user_service_file_path}" ]; then
+        echo "Error: User service file not found: ${user_service_file_path}" >&2
         exit 1
     fi
     
@@ -232,6 +259,10 @@ local_install() {
     
     echo "Copying post-sleep service file from ${post_sleep_service_file_path}..."
     cp "${post_sleep_service_file_path}" "${POST_SLEEP_SERVICE_FILE}"
+
+    echo "Copying user service file from ${user_service_file_path}..."
+    mkdir -p "$(dirname "${USER_SERVICE_FILE}")"
+    cp "${user_service_file_path}" "${USER_SERVICE_FILE}"
     
     # Run migrate-config command
     echo "Running config migration..."

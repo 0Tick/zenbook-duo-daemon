@@ -1,4 +1,4 @@
-use log::{info, warn};
+use log::{debug, info, warn};
 use std::{path::PathBuf, sync::Arc};
 use tokio::fs;
 use tokio::sync::Mutex;
@@ -10,11 +10,34 @@ use crate::state::KeyboardStateManager;
 
 // All the enum carries a value so the serialized toml looks better
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum CommandSpec {
+    Simple(String),
+    Detailed { command: String, user: Option<bool> },
+}
+
+impl CommandSpec {
+    pub fn command(&self) -> &str {
+        match self {
+            CommandSpec::Simple(command) => command,
+            CommandSpec::Detailed { command, .. } => command,
+        }
+    }
+
+    pub fn run_as_user(&self) -> bool {
+        match self {
+            CommandSpec::Simple(_) => false,
+            CommandSpec::Detailed { user, .. } => user.unwrap_or(false),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub enum KeyFunction {
     KeyboardBacklight(bool),
     ToggleSecondaryDisplay(bool),
     KeyBind(Vec<EV_KEY>),
-    Command(String),
+    Command(CommandSpec),
     NoOp(bool),
 }
 
@@ -33,7 +56,11 @@ impl KeyFunction {
                     .release_prev_and_press_keys(items);
             }
             KeyFunction::Command(command) => {
-                crate::execute_command(command);
+                if command.run_as_user() {
+                    debug!("Skipping user command in root daemon: {}", command.command());
+                } else {
+                    crate::execute_command(command.command());
+                }
             }
             KeyFunction::KeyboardBacklight(true) => {
                 state_manager.toggle_keyboard_backlight();
@@ -44,6 +71,13 @@ impl KeyFunction {
             _ => {
                 // do nothing
             }
+        }
+    }
+
+    pub fn user_command(&self) -> Option<&str> {
+        match self {
+            KeyFunction::Command(command) if command.run_as_user() => Some(command.command()),
+            _ => None,
         }
     }
 }
@@ -76,6 +110,20 @@ impl Config {
 
     pub fn product_id(&self) -> u16 {
         u16::from_str_radix(&self.usb_product_id, 16).unwrap()
+    }
+
+    pub fn key_function_by_id(&self, key_id: &str) -> Option<&KeyFunction> {
+        match key_id {
+            "keyboard_backlight_key" => Some(&self.keyboard_backlight_key),
+            "brightness_down_key" => Some(&self.brightness_down_key),
+            "brightness_up_key" => Some(&self.brightness_up_key),
+            "swap_up_down_display_key" => Some(&self.swap_up_down_display_key),
+            "microphone_mute_key" => Some(&self.microphone_mute_key),
+            "emoji_picker_key" => Some(&self.emoji_picker_key),
+            "myasus_key" => Some(&self.myasus_key),
+            "toggle_secondary_display_key" => Some(&self.toggle_secondary_display_key),
+            _ => None,
+        }
     }
 }
 
@@ -135,7 +183,7 @@ impl Config {
 # [keyboard_backlight_key]                  # This specifies the physical key to configure
 # # Only one of the following values is allowed:
 # KeyBind = [\"KEY_LEFTCTRL\", \"KEY_F10\"]     # Maps the physical key to left ctrl + f10, a list of all the keys can be found in https://docs.rs/evdev-rs/0.6.3/evdev_rs/enums/enum.EV_KEY.html
-# Command = \"echo 'Hello, world!'\"          # Runs a custom command as root when the physical key is pressed
+# Command = { command = \"echo 'Hello, world!'\", user = true } # Runs a custom command when the physical key is pressed (set user=true to run as the logged-in user)
 # KeyboardBacklight = true                  # Toggles the keyboard backlight
 # ToggleSecondaryDisplay = true             # Toggles the secondary display
 # NoOp = true                               # Does nothing when the physical key is pressed
