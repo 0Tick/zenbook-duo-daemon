@@ -14,7 +14,7 @@ use crate::{
     keyboard_usb::{find_wired_keyboard, start_usb_keyboard_monitor_task, start_usb_keyboard_task},
     secondary_display::start_secondary_display_task,
     state::{KeyboardBacklightState, KeyboardStateManager},
-    unix_pipe::start_receive_commands_task,
+    unix_pipe::{send_command, start_receive_commands_task},
     virtual_keyboard::VirtualKeyboard,
 };
 use clap::Parser;
@@ -36,6 +36,20 @@ enum Args {
         #[arg(short, long)]
         config_path: Option<PathBuf>,
     },
+    /// Send a command to the daemon over the unix socket
+    SendCommand {
+        /// Command to send to the daemon
+        command: String,
+        /// Path to the config file, defaults to /etc/zenbook-duo-daemon/config.toml
+        #[arg(short, long)]
+        config_path: Option<PathBuf>,
+    },
+    /// Run the user command daemon
+    RunUser {
+        /// Path to the config file, defaults to /etc/zenbook-duo-daemon/config.toml
+        #[arg(short, long)]
+        config_path: Option<PathBuf>,
+    },
 }
 
 mod config;
@@ -47,6 +61,7 @@ mod mute_state;
 mod secondary_display;
 mod state;
 mod unix_pipe;
+mod user_daemon;
 mod virtual_keyboard;
 
 #[tokio::main(flavor = "current_thread")]
@@ -58,6 +73,23 @@ async fn main() {
     match args {
         Args::MigrateConfig { config_path } => {
             migrate_config(config_path.unwrap_or(PathBuf::from(DEFAULT_CONFIG_PATH))).await;
+            return;
+        }
+        Args::SendCommand {
+            command,
+            config_path,
+        } => {
+            let config = Config::read(&config_path.unwrap_or(PathBuf::from(DEFAULT_CONFIG_PATH)))
+                .await;
+            if let Err(err) = send_command(&PathBuf::from(&config.pipe_path), &command).await {
+                error!("Failed to send command: {}", err);
+                process::exit(1);
+            }
+            return;
+        }
+        Args::RunUser { config_path } => {
+            user_daemon::run_user_daemon(config_path.unwrap_or(PathBuf::from(DEFAULT_CONFIG_PATH)))
+                .await;
             return;
         }
         Args::Run { config_path } => {
@@ -109,10 +141,12 @@ async fn run_daemon(config_path: PathBuf) {
     // Create virtual keyboard
     let virtual_keyboard = Arc::new(Mutex::new(VirtualKeyboard::new(&config)));
 
-    let (state_manager, activity_notifier, current_usb_keyboard) =
+    let (state_manager, activity_notifier, current_usb_keyboard, socket_notifier) =
         if let Some(keyboard) = find_wired_keyboard(&config).await {
             let state_manager = KeyboardStateManager::new(true, event_sender.clone());
             let activity_notifier = start_idle_detection_task(&config, state_manager.clone());
+            let socket_notifier =
+                start_receive_commands_task(&config, state_manager.clone(), activity_notifier.clone());
 
             let current_usb_keyboard = start_usb_keyboard_task(
                 &config,
@@ -121,14 +155,22 @@ async fn run_daemon(config_path: PathBuf) {
                 virtual_keyboard.clone(),
                 state_manager.clone(),
                 activity_notifier.clone(),
+                socket_notifier.clone(),
             )
             .await;
-            (state_manager, activity_notifier, Some(current_usb_keyboard))
+            (
+                state_manager,
+                activity_notifier,
+                Some(current_usb_keyboard),
+                socket_notifier,
+            )
         } else {
             let state_manager = KeyboardStateManager::new(false, event_sender.clone());
             let activity_notifier = start_idle_detection_task(&config, state_manager.clone());
+            let socket_notifier =
+                start_receive_commands_task(&config, state_manager.clone(), activity_notifier.clone());
 
-            (state_manager, activity_notifier, None)
+            (state_manager, activity_notifier, None, socket_notifier)
         };
 
     start_secondary_display_task(
@@ -144,6 +186,7 @@ async fn run_daemon(config_path: PathBuf) {
         virtual_keyboard.clone(),
         state_manager.clone(),
         activity_notifier.clone(),
+        socket_notifier.clone(),
     );
 
     start_usb_keyboard_monitor_task(
@@ -153,11 +196,10 @@ async fn run_daemon(config_path: PathBuf) {
         virtual_keyboard.clone(),
         state_manager.clone(),
         activity_notifier.clone(),
+        socket_notifier.clone(),
     );
 
     start_listen_mute_state_thread(state_manager.clone());
-
-    start_receive_commands_task(&config, state_manager.clone(), activity_notifier.clone());
 
     panic::set_hook(Box::new(|info| {
         error!("Thread panicked: {info}");

@@ -13,7 +13,7 @@ use tokio::{fs, task::spawn_blocking};
 
 use crate::{
     config::Config, events::Event, idle_detection::ActivityNotifier, state::KeyboardStateManager,
-    virtual_keyboard::VirtualKeyboard,
+    unix_pipe::UnixSocketNotifier, virtual_keyboard::VirtualKeyboard,
 };
 
 pub fn start_bt_keyboard_monitor_task(
@@ -22,6 +22,7 @@ pub fn start_bt_keyboard_monitor_task(
     virtual_keyboard: Arc<Mutex<VirtualKeyboard>>,
     state_manager: KeyboardStateManager,
     activity_notifier: ActivityNotifier,
+    socket_notifier: UnixSocketNotifier,
 ) {
     // First, check existing devices
     let config_clone = config.clone();
@@ -47,6 +48,7 @@ pub fn start_bt_keyboard_monitor_task(
                 virtual_keyboard_clone.clone(),
                 state_manager_clone.clone(),
                 activity_notifier.clone(),
+                socket_notifier.clone(),
             )
             .await;
         }
@@ -75,6 +77,7 @@ pub fn start_bt_keyboard_monitor_task(
                                 virtual_keyboard_clone.clone(),
                                 state_manager_clone.clone(),
                                 activity_notifier.clone(),
+                                socket_notifier.clone(),
                             )
                             .await;
                         }
@@ -92,6 +95,7 @@ async fn try_start_bt_keyboard_task(
     virtual_keyboard: Arc<Mutex<VirtualKeyboard>>,
     state_manager: KeyboardStateManager,
     activity_notifier: ActivityNotifier,
+    socket_notifier: UnixSocketNotifier,
 ) {
     // Check if path is a directory using async metadata
     if let Ok(metadata) = fs::metadata(&path).await {
@@ -129,6 +133,7 @@ async fn try_start_bt_keyboard_task(
             virtual_keyboard,
             state_manager,
             activity_notifier,
+            socket_notifier,
         );
     }
 }
@@ -141,6 +146,7 @@ pub fn start_bt_keyboard_task(
     virtual_keyboard: Arc<Mutex<VirtualKeyboard>>,
     state_manager: KeyboardStateManager,
     activity_notifier: ActivityNotifier,
+    socket_notifier: UnixSocketNotifier,
 ) {
     info!("Bluetooth connected on {}", path.display());
     activity_notifier.notify();
@@ -180,6 +186,7 @@ pub fn start_bt_keyboard_task(
     });
 
     let config = config.clone();
+    let socket_notifier = socket_notifier.clone();
     // Use spawn_blocking for the evdev read loop since it's a blocking operation
     let keyboard = Arc::new(std::sync::Mutex::new(keyboard));
     tokio::spawn(async move {
@@ -196,7 +203,14 @@ pub fn start_bt_keyboard_task(
 
             match result {
                 Ok((_status, event)) => {
-                    parse_keyboard_event(event, &config, &virtual_keyboard, &state_manager).await;
+                    parse_keyboard_event(
+                        event,
+                        &config,
+                        &virtual_keyboard,
+                        &state_manager,
+                        &socket_notifier,
+                    )
+                    .await;
                 }
                 Err(e) => {
                     if let Some(libc::ENODEV) = e.raw_os_error() {
@@ -219,6 +233,7 @@ async fn parse_keyboard_event(
     config: &Config,
     virtual_keyboard: &Arc<Mutex<VirtualKeyboard>>,
     state_manager: &KeyboardStateManager,
+    socket_notifier: &UnixSocketNotifier,
 ) {
     // Only one function key can be pressed at a time, this is a hardware limitation
     if event.event_code == EventCode::EV_ABS(EV_ABS::ABS_MISC) {
@@ -229,6 +244,7 @@ async fn parse_keyboard_event(
             }
             199 => {
                 debug!("Backlight key pressed");
+                socket_notifier.notify_key("keyboard_backlight_key");
                 config
                     .keyboard_backlight_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -236,6 +252,7 @@ async fn parse_keyboard_event(
             }
             16 => {
                 debug!("Brightness down key pressed");
+                socket_notifier.notify_key("brightness_down_key");
                 config
                     .brightness_down_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -243,6 +260,7 @@ async fn parse_keyboard_event(
             }
             32 => {
                 debug!("Brightness up key pressed");
+                socket_notifier.notify_key("brightness_up_key");
                 config
                     .brightness_up_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -250,6 +268,7 @@ async fn parse_keyboard_event(
             }
             156 => {
                 debug!("Swap up down display key pressed");
+                socket_notifier.notify_key("swap_up_down_display_key");
                 config
                     .swap_up_down_display_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -257,6 +276,7 @@ async fn parse_keyboard_event(
             }
             124 => {
                 debug!("Microphone mute key pressed");
+                socket_notifier.notify_key("microphone_mute_key");
                 config
                     .microphone_mute_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -264,6 +284,7 @@ async fn parse_keyboard_event(
             }
             126 => {
                 debug!("Emoji picker key pressed");
+                socket_notifier.notify_key("emoji_picker_key");
                 config
                     .emoji_picker_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -271,6 +292,7 @@ async fn parse_keyboard_event(
             }
             134 => {
                 debug!("MyASUS key pressed");
+                socket_notifier.notify_key("myasus_key");
                 config
                     .myasus_key
                     .execute(&virtual_keyboard, &state_manager)
@@ -278,6 +300,7 @@ async fn parse_keyboard_event(
             }
             106 => {
                 debug!("Toggle secondary display key pressed");
+                socket_notifier.notify_key("toggle_secondary_display_key");
                 config
                     .toggle_secondary_display_key
                     .execute(&virtual_keyboard, &state_manager)

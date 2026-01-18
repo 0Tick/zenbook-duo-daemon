@@ -1,0 +1,15 @@
+[Unit]
+Description=Zenbook Duo Daemon (User Commands)
+After=default.target
+
+[Service]
+Type=simple
+Environment="RUST_LOG=info"
+ExecStart=/opt/zenbook-duo-daemon/zenbook-duo-daemon run-user
+Restart=on-failure
+RestartSec=1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

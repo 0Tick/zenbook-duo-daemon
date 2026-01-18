@@ -69,14 +69,14 @@ The install script will:
 
 By default, the config file is located at `/etc/zenbook-duo-daemon/config.toml`. You can edit the fn lock, idle timeout, key mappings and keyboard VID:PID in the config file. The instructions are provided in the config file.
 
-## Control Pipe
+## Control Socket
 
-The daemon creates a named pipe for receiving commands at `/tmp/zenbook-duo-daemon.pipe` by default (configurable via `pipe_path` in the config file). The pipe is accessible by all users.
+The daemon creates a unix socket for receiving commands at `/tmp/zenbook-duo-daemon.pipe` by default (configurable via `pipe_path` in the config file). The socket is accessible by all users.
 
-Send commands using echo example:
+Send commands using the built-in CLI:
 
 ```bash
-echo mic_mute_led_toggle > /tmp/zenbook-duo-daemon.pipe
+zenbook-duo-daemon send-command mic_mute_led_toggle
 ```
 
 Available commands:
@@ -101,6 +101,14 @@ Notes:
 
 1. The `suspend_start` and `suspend_end` commands are sent automatically by the systemd services `zenbook-duo-daemon-pre-sleep` and `zenbook-duo-daemon-post-sleep` to disable keyboard backlight during suspend.
 2. The secondary display commands are no-op when the keyboard is attached.
+
+## User Commands
+
+For key mappings that should run as the logged-in user, set `user = true` in the command configuration (see the config example comment). Run the user daemon once per user session:
+
+```bash
+systemctl --user enable --now zenbook-duo-daemon-user.service
+```
 
 ## Development
 
