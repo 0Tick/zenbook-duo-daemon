@@ -122,12 +122,9 @@ async fn handle_client(
             result = event_receiver.recv() => {
                 match result {
                     Ok(message) => {
-                        if let Err(err) = writer.write_all(message.as_bytes()).await {
+                        let payload = format!("{message}\n");
+                        if let Err(err) = writer.write_all(payload.as_bytes()).await {
                             warn!("Failed to write socket message: {}", err);
-                            break;
-                        }
-                        if let Err(err) = writer.write_all(b"\n").await {
-                            warn!("Failed to write socket newline: {}", err);
                             break;
                         }
                     }
