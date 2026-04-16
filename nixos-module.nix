@@ -44,6 +44,7 @@ let
     primary_backlight_path = "${cfg.primaryBacklightPath}"
     secondary_backlight_path = "${cfg.secondaryBacklightPath}"
     pipe_path = "${cfg.pipePath}"
+    fn_lock = ${if cfg.fnLock then "true" else "false"}
     idle_timeout_seconds = ${toString cfg.idleTimeoutSeconds}
 
     [keyboard_backlight_key]
@@ -144,6 +145,12 @@ in
       type = types.str;
       default = "/run/zenbook-duo-daemon.pipe";
       description = "Path to the control pipe for sending commands to the daemon";
+    };
+
+    fnLock = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether Fn lock is enabled (true = F1-F12 require holding Fn)";
     };
 
     idleTimeoutSeconds = mkOption {

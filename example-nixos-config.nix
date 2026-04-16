@@ -35,6 +35,9 @@
     # Idle timeout: time before keyboard backlight turns off (seconds)
     # Set to 0 to disable idle detection
     idleTimeoutSeconds = 300;  # 5 minutes
+
+    # Fn lock behavior (true = F1-F12 require holding Fn)
+    fnLock = true;
     
     # Key mappings examples:
     keyMappings = {
@@ -90,5 +93,6 @@
     # primaryBacklightPath = "/sys/class/backlight/intel_backlight/brightness";
     # secondaryBacklightPath = "/sys/class/backlight/card1-eDP-2-backlight/brightness";
     # pipePath = "/run/zenbook-duo-daemon.pipe";
+    # fnLock = true;
   };
 }

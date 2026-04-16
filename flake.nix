@@ -8,10 +8,10 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      version = "1.0.1";
+      version = "1.2.0";
       
       # Shared package builder function
-      mkPackage = { rustPlatform, pkg-config, libevdev, dbus, lib, src }:
+      mkPackage = { rustPlatform, pkg-config, libevdev, dbus, libpulseaudio, lib, src }:
         rustPlatform.buildRustPackage rec {
           pname = "zenbook-duo-daemon";
           inherit version;
@@ -22,7 +22,7 @@
           };
 
           nativeBuildInputs = [ pkg-config ];
-          buildInputs = [ libevdev dbus ];
+          buildInputs = [ libevdev dbus libpulseaudio ];
 
           # Tests require hardware access and root permissions, not available in sandbox
           doCheck = false;
@@ -63,6 +63,7 @@
             pkg-config
             libevdev
             dbus
+            libpulseaudio
             rust-analyzer
             clippy
             rustfmt
