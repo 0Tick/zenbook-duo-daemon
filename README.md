@@ -47,6 +47,26 @@ AI Generated Wiki: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://dee
 
 ## Installation
 
+### NixOS (Recommended for Nix users)
+
+For NixOS users, a Nix flake is available with full declarative configuration support. See [NIX_FLAKE.md](NIX_FLAKE.md) for detailed instructions.
+
+Quick setup:
+```nix
+{
+  inputs.zenbook-duo-daemon.url = "github:PegasisForever/zenbook-duo-daemon";
+  
+  # In your NixOS configuration module
+  services.zenbook-duo-daemon = {
+    enable = true;
+    package = inputs.zenbook-duo-daemon.packages.x86_64-linux.default;
+    # All keybinds and settings are configurable via Nix options
+  };
+}
+```
+
+### Other Linux Distributions
+
 ```bash
 # Upgrade or install the latest release from GitHub
 curl -fsSL https://raw.githubusercontent.com/PegasisForever/zenbook-duo-daemon/refs/heads/master/install.sh | sudo bash -s install
