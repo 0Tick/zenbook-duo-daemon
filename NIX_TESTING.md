@@ -207,6 +207,7 @@ primary_backlight_path = "/sys/class/backlight/intel_backlight/brightness"
 secondary_backlight_path = "/sys/class/backlight/card1-eDP-2-backlight/brightness"
 pipe_path = "/run/zenbook-duo-daemon.pipe"
 idle_timeout_seconds = 300
+fn_lock = true
 
 [keyboard_backlight_key]
 KeyboardBacklight = true
